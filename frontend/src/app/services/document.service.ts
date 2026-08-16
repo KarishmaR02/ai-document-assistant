@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
+import { Graphql } from './graphql';
 
 export interface DocumentMetadata {
   id: string;
@@ -14,34 +15,78 @@ export interface DocumentMetadata {
   providedIn: 'root'
 })
 export class DocumentService {
-  private readonly documentsSignal = signal<DocumentMetadata[]>([
-    {
-      id: 'doc-1',
-      name: 'employee_policy.pdf',
-      size: 124000,
-      status: 'PROCESSED',
-      progress: 100,
-      uploadedAt: new Date(Date.now() - 3600000 * 2) // 2 hours ago
-    },
-    {
-      id: 'doc-2',
-      name: 'project_guide.pdf',
-      size: 450000,
-      status: 'PROCESSING',
-      progress: 45,
-      uploadedAt: new Date(Date.now() - 600000) // 10 mins ago
-    }
-  ]);
+  private readonly graphqlService = inject(Graphql);
+  private readonly documentsSignal = signal<DocumentMetadata[]>([]);
 
   readonly documents = this.documentsSignal.asReadonly();
 
   constructor() {
-    // Resume simulation for any document in processing status on startup
-    this.documentsSignal().forEach(doc => {
-      if (doc.status === 'PROCESSING') {
-        this.simulateProcessing(doc.id);
-      }
-    });
+    this.loadInitialDocuments();
+  }
+
+  private async loadInitialDocuments(): Promise<void> {
+    try {
+      const queryStr = `
+        query {
+          getDocuments {
+            id
+            name
+            size
+            status
+            progress
+            uploadedAt
+            errorMessage
+          }
+        }
+      `;
+      
+      const data = await this.graphqlService.query<{ getDocuments: any[] }>(queryStr);
+      
+      const docs: DocumentMetadata[] = data.getDocuments.map((doc) => ({
+        id: doc.id,
+        name: doc.name,
+        size: doc.size,
+        status: doc.status as any,
+        progress: doc.progress,
+        uploadedAt: new Date(doc.uploadedAt),
+        errorMessage: doc.errorMessage
+      }));
+      
+      this.documentsSignal.set(docs);
+      console.log('%c[GraphQL Service] SUCCESS! Fetched documents list from backend:', 'color: #10b981; font-weight: bold;', docs);
+
+      // Start simulation for any document in processing status
+      this.documentsSignal().forEach(doc => {
+        if (doc.status === 'PROCESSING') {
+          this.simulateProcessing(doc.id);
+        }
+      });
+
+    } catch (error) {
+      console.warn('[GraphQL Service] Failed to load documents from backend, using local mock fallback:', error);
+      
+      // Local fallback data
+      const fallbackDocs: DocumentMetadata[] = [
+        {
+          id: 'doc-1',
+          name: 'employee_policy_fallback.pdf',
+          size: 124000,
+          status: 'PROCESSED',
+          progress: 100,
+          uploadedAt: new Date(Date.now() - 3600000 * 2)
+        },
+        {
+          id: 'doc-2',
+          name: 'project_guide_fallback.pdf',
+          size: 450000,
+          status: 'PROCESSING',
+          progress: 45,
+          uploadedAt: new Date(Date.now() - 600000)
+        }
+      ];
+      this.documentsSignal.set(fallbackDocs);
+      this.simulateProcessing('doc-2');
+    }
   }
 
   getDocuments(): DocumentMetadata[] {
@@ -99,7 +144,6 @@ export class DocumentService {
             if (doc.progress < 80) {
               return { ...doc, progress: doc.progress + 20 };
             } else {
-              // Finish processing. Decide if it fails (10% chance) or succeeds (90%)
               clearInterval(interval);
               const failed = Math.random() < 0.1;
               if (failed) {

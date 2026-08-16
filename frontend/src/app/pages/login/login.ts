@@ -1,6 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { Graphql } from '../../services/graphql';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -10,17 +11,27 @@ import { CommonModule } from '@angular/common';
   templateUrl: './login.html',
   styleUrl: './login.scss'
 })
-export class Login {
+export class Login implements OnInit {
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly graphqlService = inject(Graphql);
+
   email = '';
   password = '';
   
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
 
-  constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+  ngOnInit(): void {
+    // Verify Frontend-to-Backend GraphQL handshake
+    this.graphqlService.query<{ hello: string }>('query { hello }')
+      .then((data) => {
+        console.log('%c[GraphQL Connection] SUCCESS! Handshake response:', 'color: #10b981; font-weight: bold;', data.hello);
+      })
+      .catch((err) => {
+        console.warn('[GraphQL Connection] FAILED! Ensure FastAPI backend is running:', err.message || err);
+      });
+  }
 
   async onSubmit() {
     this.errorMessage.set(null);

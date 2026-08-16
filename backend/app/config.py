@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     ENV: str = "development"
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:4200"]
+    SUPABASE_JWT_SECRET: str = "your-supabase-jwt-secret-placeholder"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

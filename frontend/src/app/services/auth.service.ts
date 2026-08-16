@@ -1,6 +1,8 @@
 import { Injectable, signal } from '@angular/core';
+import { supabase } from './supabase';
+import { Session } from '@supabase/supabase-js';
 
-export interface User {
+export interface AppUser {
   email: string;
 }
 
@@ -8,63 +10,76 @@ export interface User {
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly currentUserSignal = signal<User | null>(null);
+  private readonly currentUserSignal = signal<AppUser | null>(null);
   
   // Expose signal as readonly
   readonly currentUser = this.currentUserSignal.asReadonly();
 
   constructor() {
-    // Check if token and email exists in localStorage to restore session
-    const token = localStorage.getItem('mock_token');
-    const email = localStorage.getItem('mock_email');
-    if (token && email) {
+    // 1. Fetch initial session state on app load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      this.handleSession(session);
+    });
+
+    // 2. Listen dynamically to authentication changes (login, logout, token refreshes)
+    supabase.auth.onAuthStateChange((_event, session) => {
+      this.handleSession(session);
+    });
+  }
+
+  private handleSession(session: Session | null): void {
+    if (session && session.user) {
+      const email = session.user.email || '';
       this.currentUserSignal.set({ email });
+      // Keep local items for backwards-compatibility checks
+      localStorage.setItem('mock_token', session.access_token);
+      localStorage.setItem('mock_email', email);
+    } else {
+      this.currentUserSignal.set(null);
+      localStorage.removeItem('mock_token');
+      localStorage.removeItem('mock_email');
     }
   }
 
-  register(email: string, password: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Mock registering: Store mock credentials
-        const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-        if (registeredUsers.some((u: any) => u.email === email)) {
-          resolve(false);
-          return;
-        }
-        registeredUsers.push({ email, password });
-        localStorage.setItem('registered_users', JSON.stringify(registeredUsers));
-        resolve(true);
-      }, 500);
+  async register(email: string, password: string): Promise<boolean> {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password
     });
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    return data.user !== null;
   }
 
-  login(email: string, password: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Mock login check
-        const registeredUsers = JSON.parse(localStorage.getItem('registered_users') || '[]');
-        const user = registeredUsers.find((u: any) => u.email === email && u.password === password);
-        
-        // Let's also allow a fallback user for easier development testing
-        if (user || (email === 'demo@example.com' && password === 'password')) {
-          localStorage.setItem('mock_token', 'mock_jwt_token_for_' + email);
-          localStorage.setItem('mock_email', email);
-          this.currentUserSignal.set({ email });
-          resolve(true);
-        } else {
-          resolve(false);
-        }
-      }, 500);
+  async login(email: string, password: string): Promise<boolean> {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
     });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return data.session !== null;
   }
 
-  logout(): void {
-    localStorage.removeItem('mock_token');
-    localStorage.removeItem('mock_email');
-    this.currentUserSignal.set(null);
+  async logout(): Promise<void> {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw new Error(error.message);
+    }
   }
 
   isAuthenticated(): boolean {
     return this.currentUserSignal() !== null;
+  }
+
+  async getAccessToken(): Promise<string | null> {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
   }
 }

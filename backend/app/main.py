@@ -8,7 +8,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from strawberry.fastapi import GraphQLRouter
 from app.config import settings
+from app.graphql.schema import schema
+from app.auth.service import verify_jwt
 
 # Configure logging format and level
 logging.basicConfig(
@@ -41,6 +44,21 @@ app.add_middleware(
 )
 
 logger.info(f"CORS origins configured: {cors_origins}")
+
+# Register Strawberry GraphQL router
+async def get_context(request: Request):
+    user = None
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        user = verify_jwt(token)
+    return {
+        "user": user
+    }
+
+graphql_app = GraphQLRouter(schema, context_getter=get_context)
+app.include_router(graphql_app, prefix="/graphql")
+logger.info("GraphQL endpoint mounted on /graphql with custom auth context")
 
 # Basic error handling for unexpected exceptions
 @app.exception_handler(Exception)
