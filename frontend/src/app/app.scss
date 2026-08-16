@@ -1,0 +1,87 @@
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-header {
+  background-color: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  .header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+    font-family: var(--font-family-heading);
+    font-size: 1.25rem;
+    font-weight: 700;
+
+    .logo-icon {
+      width: 1.75rem;
+      height: 1.75rem;
+      color: var(--color-primary);
+    }
+
+    &:hover {
+      opacity: 0.95;
+    }
+  }
+
+  .user-menu {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .user-email {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+
+  .btn-logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+
+    .logout-icon {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    &:hover {
+      color: var(--color-danger);
+      border-color: rgba(239, 68, 68, 0.4);
+      background-color: rgba(239, 68, 68, 0.05);
+    }
+  }
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}

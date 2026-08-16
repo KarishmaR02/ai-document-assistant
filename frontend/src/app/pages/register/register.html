@@ -1,0 +1,80 @@
+<div class="auth-container">
+  <div class="glass-card auth-card">
+    <div class="auth-header">
+      <div class="logo-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <line x1="10" y1="9" x2="8" y2="9"/>
+        </svg>
+      </div>
+      <h2>Create Account</h2>
+      <p>Get started with AI Document Assistant</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" #registerForm="ngForm" class="auth-form">
+      <div *ngIf="errorMessage()" class="alert alert-danger">
+        {{ errorMessage() }}
+      </div>
+      <div *ngIf="successMessage()" class="alert alert-success">
+        {{ successMessage() }}
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <div class="input-wrapper">
+          <input
+            type="email"
+            id="email"
+            name="email"
+            [(ngModel)]="email"
+            placeholder="name@company.com"
+            required
+            #emailInput="ngModel"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <input
+            type="password"
+            id="password"
+            name="password"
+            [(ngModel)]="password"
+            placeholder="••••••••"
+            required
+            #passwordInput="ngModel"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <div class="input-wrapper">
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            [(ngModel)]="confirmPassword"
+            placeholder="••••••••"
+            required
+            #confirmInput="ngModel"
+          />
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-block" [disabled]="isLoading() || registerForm.invalid">
+        <span *ngIf="isLoading()">Creating account...</span>
+        <span *ngIf="!isLoading()">Register</span>
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      <p>Already have an account? <a routerLink="/login">Sign In</a></p>
+    </div>
+  </div>
+</div>

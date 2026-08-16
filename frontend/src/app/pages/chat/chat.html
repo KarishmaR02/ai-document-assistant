@@ -1,0 +1,115 @@
+<div class="chat-container">
+  <!-- Chat Header -->
+  <div class="chat-header glass-card">
+    <div class="header-left">
+      <a routerLink="/dashboard" class="btn-back">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </a>
+      <div class="doc-title-info" *ngIf="document()">
+        <h3>{{ document()?.name }}</h3>
+        <span class="active-badge">Active Session</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages Body -->
+  <div class="chat-messages-wrapper" #scrollContainer>
+    <div class="messages-list">
+      <div 
+        class="message-group" 
+        *ngFor="let msg of messagesList()" 
+        [class.user-group]="msg.sender === 'user'"
+        [class.ai-group]="msg.sender === 'ai'"
+      >
+        <div class="message-avatar">
+          <svg *ngIf="msg.sender === 'ai'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+            <path d="M19 11v2a7 7 0 0 1-14 0v-2"/>
+            <rect x="7" y="10" width="10" height="8" rx="2"/>
+            <circle cx="10" cy="14" r="1"/>
+            <circle cx="14" cy="14" r="1"/>
+          </svg>
+          <span *ngIf="msg.sender === 'user'">U</span>
+        </div>
+
+        <div class="message-content-bubble">
+          <div class="message-text">{{ msg.text }}</div>
+          <span class="message-time">{{ msg.timestamp | date:'shortTime' }}</span>
+
+          <!-- RAG Source Citations -->
+          <div class="message-citations" *ngIf="msg.sender === 'ai' && msg.retrievedChunks && msg.retrievedChunks.length > 0">
+            <div class="citations-header">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="citations-icon">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+              <span>Retrieved context from document:</span>
+            </div>
+
+            <div class="citation-pills">
+              <button 
+                *ngFor="let chunk of msg.retrievedChunks; let idx = index" 
+                class="citation-pill"
+                [class.active]="activeCitation() === chunk"
+                (click)="toggleCitation(chunk)"
+              >
+                Chunk {{ idx + 1 }} (Page {{ chunk.pageNumber }} • Match {{ chunk.score | percent }})
+              </button>
+            </div>
+
+            <!-- Citation content block (displays when toggled active) -->
+            <div class="citation-content-box" *ngIf="activeCitation()">
+              <div class="citation-meta-info">
+                <span>Page {{ activeCitation()?.pageNumber }} • Similarity Score: {{ activeCitation()?.score | percent }}</span>
+              </div>
+              <p class="citation-text">"{{ activeCitation()?.text }}"</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="message-group ai-group typing-indicator-group" *ngIf="isAiResponding()">
+        <div class="message-avatar">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
+            <path d="M19 11v2a7 7 0 0 1-14 0v-2"/>
+            <rect x="7" y="10" width="10" height="8" rx="2"/>
+            <circle cx="10" cy="14" r="1"/>
+            <circle cx="14" cy="14" r="1"/>
+          </svg>
+        </div>
+        <div class="message-content-bubble typing-bubble">
+          <div class="typing-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Input Footer -->
+  <div class="chat-input-container glass-card">
+    <form (ngSubmit)="sendQuery()" class="chat-form">
+      <input
+        type="text"
+        name="query"
+        [(ngModel)]="queryText"
+        placeholder="Ask a question about this document..."
+        [disabled]="isAiResponding()"
+        autocomplete="off"
+      />
+      <button type="submit" class="btn-send" [disabled]="!queryText.trim() || isAiResponding()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </form>
+  </div>
+</div>

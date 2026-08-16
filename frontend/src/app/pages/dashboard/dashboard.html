@@ -1,0 +1,128 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1>Your Knowledge Base</h1>
+    <p>Manage documents, track processing states, and chat with your files.</p>
+  </div>
+
+  <div *ngIf="errorMessage()" class="alert alert-danger error-alert">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="alert-icon">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span>{{ errorMessage() }}</span>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Left Column: Upload -->
+    <div class="glass-card upload-section">
+      <h3>Upload Document</h3>
+      <p class="section-desc">Add a PDF document to parse, index, and query.</p>
+
+      <div
+        class="drag-drop-zone"
+        [class.dragging]="isDragging()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)"
+        (click)="fileInput.click()"
+      >
+        <input
+          #fileInput
+          type="file"
+          accept="application/pdf"
+          style="display: none"
+          (change)="onFileSelected($event)"
+        />
+
+        <div class="zone-content">
+          <div class="upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <span class="zone-text" *ngIf="!isUploading()">Drag and drop PDF here or click to browse</span>
+          <span class="zone-text" *ngIf="isUploading()">Uploading file...</span>
+          <span class="file-limits">PDF file (Max 10MB)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Documents List -->
+    <div class="glass-card list-section">
+      <h3>Documents</h3>
+      <p class="section-desc">List of indexed files and their parsing statuses.</p>
+
+      <div class="documents-list" *ngIf="documents().length > 0; else noDocs">
+        <div class="document-item" *ngFor="let doc of documents()">
+          <div class="doc-info">
+            <div class="doc-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <line x1="10" y1="9" x2="8" y2="9"/>
+              </svg>
+            </div>
+            <div class="doc-meta">
+              <span class="doc-name" [title]="doc.name">{{ doc.name }}</span>
+              <span class="doc-details">{{ formatSize(doc.size) }} • {{ doc.uploadedAt | date:'shortTime' }}</span>
+            </div>
+          </div>
+
+          <!-- Status badge + processing progress -->
+          <div class="doc-status-section">
+            <div class="status-badge" [class]="doc.status.toLowerCase()">
+              <span class="pulse" *ngIf="doc.status === 'PROCESSING'"></span>
+              {{ doc.status }}
+            </div>
+            
+            <div class="progress-bar-container" *ngIf="doc.status === 'PROCESSING' || doc.status === 'UPLOADED'">
+              <div class="progress-fill" [style.width.%]="doc.progress"></div>
+            </div>
+
+            <div class="error-tooltip" *ngIf="doc.status === 'FAILED' && doc.errorMessage">
+              {{ doc.errorMessage }}
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="doc-actions">
+            <a
+              *ngIf="doc.status === 'PROCESSED'"
+              [routerLink]="['/chat', doc.id]"
+              class="btn-action btn-chat"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>Chat</span>
+            </a>
+            <span *ngIf="doc.status === 'PROCESSING' || doc.status === 'UPLOADED'" class="action-locked">
+              Indexing...
+            </span>
+            <span *ngIf="doc.status === 'FAILED'" class="action-failed" title="This document failed processing.">
+              Locked
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noDocs>
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+              <polyline points="14 2 14 8 20 8"/>
+            </svg>
+          </div>
+          <h4>No documents found</h4>
+          <p>Get started by uploading a PDF document in the upload area.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>
