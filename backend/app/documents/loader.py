@@ -44,3 +44,19 @@ def upload_to_supabase(file_content: bytes, filename: str, user_id: str) -> str:
     except Exception as e:
         logger.error(f"Supabase Storage upload failed for file '{filename}' at path '{storage_path}': {e}", exc_info=True)
         raise RuntimeError(f"Storage upload failed: {str(e)}")
+
+def download_from_supabase(storage_path: str) -> bytes:
+    """
+    Downloads raw file bytes from the Supabase Storage bucket 'documents'.
+    """
+    if supabase_client is None:
+        raise ValueError("Supabase storage client is not initialized. Check your credentials.")
+
+    try:
+        logger.info(f"Downloading file from Supabase Storage path: '{storage_path}'")
+        # download returns raw bytes
+        file_bytes = supabase_client.storage.from_("documents").download(storage_path)
+        return file_bytes
+    except Exception as e:
+        logger.error(f"Failed to download file '{storage_path}' from Supabase Storage: {e}", exc_info=True)
+        raise RuntimeError(f"Storage download failed: {str(e)}")
