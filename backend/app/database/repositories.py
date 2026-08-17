@@ -57,6 +57,27 @@ class DocumentRepository:
         result = await db.execute(stmt_fetch)
         return result.scalar_one_or_none()
 
+    @staticmethod
+    async def search_similar_chunks(
+        db: AsyncSession,
+        doc_id: uuid.UUID,
+        query_embedding: List[float],
+        limit: int = 4
+    ) -> List[models.DocumentChunk]:
+        """
+        Runs a pgvector similarity search to find the closest text chunks 
+        for a document, ordered by cosine distance (<=>).
+        """
+        stmt = (
+            select(models.DocumentChunk)
+            .where(models.DocumentChunk.document_id == doc_id)
+            .order_by(models.DocumentChunk.embedding.cosine_distance(query_embedding))
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
+
+
 
 class ChatRepository:
     @staticmethod

@@ -1,4 +1,5 @@
 import logging
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 from app.config import settings
@@ -36,6 +37,8 @@ async def init_db():
     from app.database import models
     try:
         async with engine.begin() as conn:
+            logger.info("Enabling pgvector extension if not exists...")
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
             logger.info("Initializing database tables...")
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables initialized successfully.")

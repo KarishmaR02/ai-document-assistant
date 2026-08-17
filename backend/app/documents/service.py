@@ -6,6 +6,7 @@ from app.database import models
 from app.database.repositories import DocumentRepository
 from app.documents.loader import download_from_supabase
 from app.documents.processor import extract_pdf_chunks
+from app.documents.embeddings import get_embeddings_batch
 
 logger = logging.getLogger("ai-document-assistant.documents.service")
 
@@ -66,17 +67,22 @@ async def process_document_background(doc_id: uuid.UUID) -> None:
                 progress=80
             )
 
-        # 7. Bulk insert document chunks into PostgreSQL
-        logger.info(f"Saving {len(chunks_data)} text chunks to database...")
+        # 7. Bulk generate embeddings and insert document chunks into PostgreSQL
+        logger.info("Generating text vector embeddings in batch...")
+        texts = [chunk["text"] for chunk in chunks_data]
+        embeddings = get_embeddings_batch(texts)
+
+        logger.info(f"Saving {len(chunks_data)} text chunks (with vectors) to database...")
         async with async_session_maker() as db:
             db_chunks = [
                 models.DocumentChunk(
                     document_id=doc_id,
                     text=chunk["text"],
                     page_number=chunk["page_number"],
-                    chunk_index=chunk["chunk_index"]
+                    chunk_index=chunk["chunk_index"],
+                    embedding=embeddings[idx]
                 )
-                for chunk in chunks_data
+                for idx, chunk in enumerate(chunks_data)
             ]
             db.add_all(db_chunks)
             await db.commit()

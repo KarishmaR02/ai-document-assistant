@@ -5,6 +5,7 @@ from sqlalchemy import String, Integer, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
+from pgvector.sqlalchemy import Vector
 from app.database.connection import Base
 
 class Document(Base):
@@ -33,6 +34,9 @@ class DocumentChunk(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     page_number: Mapped[int] = mapped_column(Integer, nullable=False)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    
+    # 384-dimensional vector embedding column mapped to pgvector
+    embedding: Mapped[Optional[list]] = mapped_column(Vector(384), nullable=True)
 
     # Relationships
     document: Mapped["Document"] = relationship("Document", back_populates="chunks")
