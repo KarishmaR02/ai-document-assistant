@@ -52,6 +52,7 @@ export class Chat implements OnInit {
     }
 
     this.document.set(doc);
+    this.chatService.loadMessagesForDocument(docId);
     this.messagesList.set(this.chatService.getMessagesByDocument(docId));
     this.scrollToBottom();
   }
