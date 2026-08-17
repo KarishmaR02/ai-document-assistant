@@ -1,39 +1,39 @@
-import jwt
 import logging
+from supabase import create_client, Client
 from app.config import settings
 
 logger = logging.getLogger("ai-document-assistant.auth")
 
+# Initialize a Supabase client to call Auth APIs directly
+try:
+    supabase_client: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+except Exception as e:
+    logger.error(f"Failed to initialize Supabase client in auth service: {e}")
+    supabase_client = None
+
 def verify_jwt(token: str) -> dict | None:
     """
-    Decodes and verifies a Supabase JWT token using the secret key.
-    Returns a dictionary containing the user's ID and email, or None if invalid.
+    Verifies the JWT token by validating it against Supabase Auth.
+    Returns the user payload (id and email) if valid, or None if invalid.
     """
+    if not supabase_client:
+        logger.error("Supabase client is not initialized in auth service.")
+        return None
+
     try:
-        payload = jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            options={"verify_aud": False}
-        )
+        # Call the Supabase Auth API to get the user corresponding to this token.
+        # This securely verifies signature, expiration, and claims on the Supabase server.
+        response = supabase_client.auth.get_user(token)
         
-        user_id = payload.get("sub")
-        email = payload.get("email")
+        if response and response.user:
+            return {
+                "user_id": str(response.user.id),
+                "email": response.user.email
+            }
         
-        if not user_id:
-            logger.warning("JWT validation failed: 'sub' (user_id) claim is missing.")
-            return None
-            
-        return {
-            "user_id": user_id,
-            "email": email
-        }
-    except jwt.ExpiredSignatureError:
-        logger.warning("JWT validation failed: Token has expired.")
+        logger.warning("Token verification failed: No user found in response.")
         return None
-    except jwt.InvalidSignatureError:
-        logger.warning("JWT validation failed: Invalid signature. Check your SUPABASE_JWT_SECRET.")
-        return None
-    except jwt.PyJWTError as e:
-        logger.warning(f"JWT validation failed with error: {e}")
+        
+    except Exception as e:
+        logger.warning(f"JWT verification failed via Supabase API: {e}")
         return None

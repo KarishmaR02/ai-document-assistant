@@ -1,3 +1,4 @@
+import uuid
 import strawberry
 from typing import List
 
@@ -8,8 +9,8 @@ class DocumentType:
     size: int
     status: str
     progress: int
-    uploaded_at: str
-    error_message: str | None = None
+    uploadedAt: str
+    errorMessage: str | None = None
 
 @strawberry.type
 class Query:
@@ -21,22 +22,30 @@ class Query:
         return "Hello Anonymous! Connect authentication to see your email."
 
     @strawberry.field
-    def get_documents(self) -> List[DocumentType]:
-        return [
-            DocumentType(
-                id="doc-1",
-                name="employee_policy.pdf",
-                size=124000,
-                status="PROCESSED",
-                progress=100,
-                uploaded_at="2026-08-16T12:00:00Z"
-            ),
-            DocumentType(
-                id="doc-2",
-                name="project_guide.pdf",
-                size=450000,
-                status="PROCESSING",
-                progress=45,
-                uploaded_at="2026-08-16T14:30:00Z"
-            )
-        ]
+    async def get_documents(self, info: strawberry.Info) -> List[DocumentType]:
+        user = info.context.get("user")
+        if not user or not user.get("user_id"):
+            return []
+            
+        try:
+            user_id = uuid.UUID(user.get("user_id"))
+        except ValueError:
+            return []
+
+        from app.database.connection import async_session_maker
+        from app.database.repositories import DocumentRepository
+
+        async with async_session_maker() as db:
+            docs = await DocumentRepository.get_documents_by_user(db, user_id)
+            return [
+                DocumentType(
+                    id=str(doc.id),
+                    name=doc.name,
+                    size=doc.size,
+                    status=doc.status,
+                    progress=doc.progress,
+                    uploadedAt=doc.uploaded_at.isoformat(),
+                    errorMessage=doc.error_message
+                )
+                for doc in docs
+            ]

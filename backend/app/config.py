@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     ENV: str = "development"
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:4200"]
     SUPABASE_JWT_SECRET: str = "your-supabase-jwt-secret-placeholder"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
+    SUPABASE_URL: str = "https://your-supabase-project.supabase.co"
+    SUPABASE_SERVICE_ROLE_KEY: str = "your-supabase-service-role-key-placeholder"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
