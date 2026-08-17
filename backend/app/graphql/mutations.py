@@ -3,6 +3,7 @@ import strawberry
 from typing import Optional
 from app.graphql.types import SessionType, MessageType, RetrievedChunkType
 from app.documents.embeddings import get_embedding
+from app.documents.llm import generate_answer
 
 @strawberry.type
 class AuthPayload:
@@ -100,22 +101,20 @@ class Mutation:
                 for idx, chunk in enumerate(similar_chunks)
             ]
 
-            # 6. Construct placeholder response listing the matched chunks (LLM will plug in Phase 10)
+            # 6. Generate real natural-language response using Google Gemini
             if retrieved_chunks:
-                citation_summary = "\n\n".join(
-                    f'[Page {c["pageNumber"]}]: "{c["text"][:140]}..."'
-                    for c in retrieved_chunks
-                )
-                ai_reply_text = (
-                    f"**Phase 9 RAG Search**: I found {len(retrieved_chunks)} relevant matches inside "
-                    f"your document to answer your question:\n\n{citation_summary}\n\n"
-                    f"*(Real AI text generator will be connected in Phase 10)*"
-                )
+                chunk_texts = [c["text"] for c in retrieved_chunks]
+                
+                # Check if it's the API Key Warning output; if so, we append context list so they aren't completely blind.
+                ai_reply_text = generate_answer(text, chunk_texts)
+                if "⚠️ **Gemini API Key Required**" in ai_reply_text:
+                    citation_summary = "\n\n".join(
+                        f'[Page {c["pageNumber"]}]: "{c["text"][:160]}..."'
+                        for c in retrieved_chunks
+                    )
+                    ai_reply_text += f"\n\n**Retrieved Database Chunks Context:**\n\n{citation_summary}"
             else:
-                ai_reply_text = (
-                    "**Phase 9 RAG Search**: I could not find any relevant text matches inside your "
-                    "document to answer your question."
-                )
+                ai_reply_text = "I cannot find the answer to your question in the provided document."
 
             # 7. Save AI's response to database logs
             ai_msg = await ChatRepository.create_message(

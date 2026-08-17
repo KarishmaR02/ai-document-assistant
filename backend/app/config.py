@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/postgres"
     SUPABASE_URL: str = "https://your-supabase-project.supabase.co"
     SUPABASE_SERVICE_ROLE_KEY: str = "your-supabase-service-role-key-placeholder"
+    GEMINI_API_KEY: str = "your-gemini-api-key-placeholder"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
