@@ -14,6 +14,16 @@ class Settings(BaseSettings):
     SUPABASE_SERVICE_ROLE_KEY: str = "your-supabase-service-role-key-placeholder"
     GEMINI_API_KEY: str = "your-gemini-api-key-placeholder"
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def enforce_asyncpg_driver(cls, value: str) -> str:
+        if isinstance(value, str):
+            if value.startswith("postgres://"):
+                return value.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif value.startswith("postgresql://"):
+                return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: Union[str, List[str]]) -> List[str]:

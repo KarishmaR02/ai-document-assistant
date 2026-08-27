@@ -1,52 +1,51 @@
 import logging
 from typing import List
+from app.documents.llm import ensure_genai_configured
 
 logger = logging.getLogger("ai-document-assistant.documents.embeddings")
 
-# Cached model instance
-_model_instance = None
-
-def get_embeddings_model():
-    """
-    Returns the cached instance of the SentenceTransformer model.
-    Loads it from local disk or downloads it on first call.
-    """
-    global _model_instance
-    if _model_instance is None:
-        try:
-            # We import here to avoid loading the heavy library on server startup.
-            # It will only load when the first file is uploaded or chat is initiated.
-            logger.info("Loading SentenceTransformer model 'all-MiniLM-L6-v2' (384 dimensions)...")
-            from sentence_transformers import SentenceTransformer
-            
-            _model_instance = SentenceTransformer("all-MiniLM-L6-v2")
-            logger.info("SentenceTransformer model loaded successfully.")
-        except Exception as e:
-            logger.error(f"Failed to load SentenceTransformer model: {e}", exc_info=True)
-            raise RuntimeError(f"Failed to initialize embedding model: {str(e)}")
-            
-    return _model_instance
-
 def get_embedding(text: str) -> List[float]:
     """
-    Generates a 384-dimensional vector embedding for a single text query.
+    Generates a 768-dimensional vector embedding for a single text query using Google Gemini API.
     """
     if not text.strip():
-        return [0.0] * 384
+        return [0.0] * 768
         
-    model = get_embeddings_model()
-    # encode returns a numpy array, which we convert to a plain list of float numbers
-    vector_np = model.encode(text)
-    return vector_np.tolist()
+    try:
+        ensure_genai_configured()
+        import google.generativeai as genai
+        
+        logger.info("Generating embedding via Gemini API...")
+        response = genai.embed_content(
+            model="models/gemini-embedding-001",
+            content=text,
+            task_type="retrieval_query",
+            output_dimensionality=768
+        )
+        return response['embedding']
+    except Exception as e:
+        logger.error(f"Failed to generate embedding: {e}", exc_info=True)
+        raise RuntimeError(f"Failed to generate embedding: {str(e)}")
 
 def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
     """
-    Generates vector embeddings for a batch of text chunks.
-    Highly performant because it leverages batch processing operations.
+    Generates 768-dimensional vector embeddings for a batch of text chunks using Google Gemini API.
     """
     if not texts:
         return []
         
-    model = get_embeddings_model()
-    vectors_np = model.encode(texts)
-    return [vec.tolist() for vec in vectors_np]
+    try:
+        ensure_genai_configured()
+        import google.generativeai as genai
+        
+        logger.info(f"Generating batch embeddings for {len(texts)} chunks via Gemini API...")
+        response = genai.embed_content(
+            model="models/gemini-embedding-001",
+            content=texts,
+            task_type="retrieval_document",
+            output_dimensionality=768
+        )
+        return response['embedding']
+    except Exception as e:
+        logger.error(f"Failed to generate batch embeddings: {e}", exc_info=True)
+        raise RuntimeError(f"Failed to generate batch embeddings: {str(e)}")
