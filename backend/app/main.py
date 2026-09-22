@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request, UploadFile, File, Depends, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from strawberry.fastapi import GraphQLRouter
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.graphql.schema import schema
 from app.auth.service import verify_jwt

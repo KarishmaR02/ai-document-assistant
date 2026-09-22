@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Graphql } from './graphql';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 export interface DocumentMetadata {
   id: string;
@@ -127,7 +128,7 @@ export class DocumentService {
     // 5. Send POST file upload request
     try {
       const response = await firstValueFrom(
-        this.http.post<any>('http://localhost:8000/api/documents/upload', formData, { headers })
+        this.http.post<any>(`${environment.apiBaseUrl}/api/documents/upload`, formData, { headers })
       );
 
       const newDoc: DocumentMetadata = {

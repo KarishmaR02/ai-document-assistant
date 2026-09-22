@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +10,7 @@ import { AuthService } from './auth.service';
 export class Graphql {
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
-  private readonly endpoint = 'http://localhost:8000/graphql';
+  private readonly endpoint = `${environment.apiBaseUrl}/graphql`;
 
   async query<T>(query: string, variables: any = {}): Promise<T> {
     try {

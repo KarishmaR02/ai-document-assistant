@@ -4,7 +4,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    HOST: str = "127.0.0.1"
+    HOST: str = "0.0.0.0"
     PORT: int = 8000
     ENV: str = "development"
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:4200"]
@@ -13,6 +13,16 @@ class Settings(BaseSettings):
     SUPABASE_URL: str = "https://your-supabase-project.supabase.co"
     SUPABASE_SERVICE_ROLE_KEY: str = "your-supabase-service-role-key-placeholder"
     GEMINI_API_KEY: str = "your-gemini-api-key-placeholder"
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def enforce_asyncpg_driver(cls, value: str) -> str:
+        if isinstance(value, str):
+            if value.startswith("postgres://"):
+                return value.replace("postgres://", "postgresql+asyncpg://", 1)
+            elif value.startswith("postgresql://"):
+                return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

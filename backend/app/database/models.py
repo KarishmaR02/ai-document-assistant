@@ -35,8 +35,8 @@ class DocumentChunk(Base):
     page_number: Mapped[int] = mapped_column(Integer, nullable=False)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
     
-    # 384-dimensional vector embedding column mapped to pgvector
-    embedding: Mapped[Optional[list]] = mapped_column(Vector(384), nullable=True)
+    # 768-dimensional vector embedding column mapped to pgvector (Gemini text-embedding-004)
+    embedding: Mapped[Optional[list]] = mapped_column(Vector(768), nullable=True)
 
     # Relationships
     document: Mapped["Document"] = relationship("Document", back_populates="chunks")
